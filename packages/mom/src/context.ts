@@ -166,7 +166,7 @@ export interface MomSettings {
 }
 
 const DEFAULT_COMPACTION: MomCompactionSettings = {
-	enabled: false,
+	enabled: true,
 	reserveTokens: 16384,
 	keepRecentTokens: 20000,
 };

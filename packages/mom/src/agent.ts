@@ -433,12 +433,7 @@ function createRunner(sandboxConfig: SandboxConfig, channelId: string, channelDi
 	// Determine model and provider
 	const provider = (settingsManager.getDefaultProvider() || "anthropic") as KnownProvider;
 	const modelId = settingsManager.getDefaultModel() || "claude-sonnet-4-5";
-	log.logInfo(`[${channelId}] Selecting model: ${provider}/${modelId}`);
 	const model = (getModel as any)(provider, modelId);
-
-	if (!model) {
-		log.logAgentError("system", `[${channelId}] Failed to find model: ${provider}/${modelId}`);
-	}
 
 	// Create agent
 	const agent = new Agent({

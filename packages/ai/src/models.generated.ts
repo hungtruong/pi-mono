@@ -2494,6 +2494,25 @@ export const MODELS = {
 			maxTokens: 40000,
 		} satisfies Model<"openai-completions">,
 	},
+	"cloudflare-gateway": {
+		"google-ai-studio/gemini-3-flash-preview": {
+			id: "google-ai-studio/gemini-3-flash-preview",
+			name: "Gemini 3 Flash Preview (via Cloudflare)",
+			api: "openai-completions",
+			provider: "cloudflare-gateway",
+			baseUrl: "https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/compat",
+			reasoning: true,
+			input: ["text", "image"],
+			cost: {
+				input: 0,
+				output: 0,
+				cacheRead: 0,
+				cacheWrite: 0,
+			},
+			contextWindow: 1048576,
+			maxTokens: 8192,
+		} satisfies Model<"openai-completions">,
+	},
 	"github-copilot": {
 		"claude-haiku-4.5": {
 			id: "claude-haiku-4.5",
@@ -7797,12 +7816,12 @@ export const MODELS = {
 			reasoning: false,
 			input: ["text"],
 			cost: {
-				input: 0.5,
-				output: 2.4,
+				input: 0.55,
+				output: 2.2,
 				cacheRead: 0,
 				cacheWrite: 0,
 			},
-			contextWindow: 131072,
+			contextWindow: 131000,
 			maxTokens: 4096,
 		} satisfies Model<"openai-completions">,
 		"moonshotai/kimi-k2-0905": {

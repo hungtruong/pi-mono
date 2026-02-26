@@ -368,14 +368,22 @@ function createClient(
 		Object.assign(headers, copilotHeaders);
 	}
 
+	if (model.provider === "cloudflare-gateway") {
+		// Cloudflare Gateway uses 'cf-aig-authorization' instead of standard 'Authorization'
+		Object.assign(headers, { "cf-aig-authorization": `Bearer ${apiKey}` });
+	}
+
 	// Merge options headers last so they can override defaults
 	if (optionsHeaders) {
 		Object.assign(headers, optionsHeaders);
 	}
 
+	const baseURL =
+		model.provider === "cloudflare-gateway" ? process.env.CF_AIG_URL || model.baseUrl : model.baseUrl;
+
 	return new OpenAI({
-		apiKey,
-		baseURL: model.baseUrl,
+		apiKey: model.provider === "cloudflare-gateway" ? "not-used" : apiKey,
+		baseURL,
 		dangerouslyAllowBrowser: true,
 		defaultHeaders: headers,
 	});

@@ -687,6 +687,25 @@ async function generateModels() {
 		});
 	}
 
+	// Add Cloudflare Gateway Gemini 3 Flash Preview
+	allModels.push({
+		id: "google-ai-studio/gemini-3-flash-preview",
+		name: "Gemini 3 Flash Preview (via Cloudflare)",
+		api: "openai-completions",
+		provider: "cloudflare-gateway",
+		baseUrl: "https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/compat",
+		reasoning: true,
+		input: ["text", "image"],
+		cost: {
+			input: 0,
+			output: 0,
+			cacheRead: 0,
+			cacheWrite: 0,
+		},
+		contextWindow: 1048576,
+		maxTokens: 8192,
+	});
+
 	// Add missing Claude Opus 4.6
 	if (!allModels.some(m => m.provider === "anthropic" && m.id === "claude-opus-4-6")) {
 		allModels.push({

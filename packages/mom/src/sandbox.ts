@@ -183,7 +183,7 @@ class DockerExecutor implements Executor {
 		// Pass MOM_ prefix and _API_KEY suffix environment variables to docker exec
 		const envArgs: string[] = [];
 		for (const [key, value] of Object.entries(process.env)) {
-			if (value && (key.startsWith("MOM_") || key.endsWith("_API_KEY"))) {
+			if (value && (key.startsWith("MOM_") || key.endsWith("_API_KEY") || key === "CF_AIG_TOKEN" || key === "CF_AIG_URL")) {
 				envArgs.push("-e", `${key}=${value}`);
 			}
 		}

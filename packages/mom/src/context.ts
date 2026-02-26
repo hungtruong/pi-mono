@@ -248,11 +248,11 @@ export class MomSettingsManager {
 	}
 
 	getDefaultModel(): string | undefined {
-		return this.settings.defaultModel;
+		return process.env.MOM_DEFAULT_MODEL || this.settings.defaultModel;
 	}
 
 	getDefaultProvider(): string | undefined {
-		return this.settings.defaultProvider;
+		return process.env.MOM_DEFAULT_PROVIDER || this.settings.defaultProvider;
 	}
 
 	setDefaultModelAndProvider(provider: string, modelId: string): void {
@@ -293,5 +293,77 @@ export class MomSettingsManager {
 
 	getHookTimeout(): number {
 		return 30000;
+	}
+
+	getImageAutoResize(): boolean {
+		return true;
+	}
+
+	getShellCommandPrefix(): string | undefined {
+		return undefined;
+	}
+
+	getShellPath(): string | undefined {
+		return undefined;
+	}
+
+	getBlockImages(): boolean {
+		return false;
+	}
+
+	getShowImages(): boolean {
+		return true;
+	}
+
+	getThinkingBudgets(): any {
+		return undefined;
+	}
+
+	getHideThinkingBlock(): boolean {
+		return false;
+	}
+
+	getEnableSkillCommands(): boolean {
+		return true;
+	}
+
+	getPackages(): any[] {
+		return [];
+	}
+
+	getExtensionPaths(): string[] {
+		return [];
+	}
+
+	getSkillPaths(): string[] {
+		return [];
+	}
+
+	getPromptTemplatePaths(): string[] {
+		return [];
+	}
+
+	getThemePaths(): string[] {
+		return [];
+	}
+
+	getEnabledModels(): string[] | undefined {
+		return undefined;
+	}
+
+	getEditorPaddingX(): number {
+		return 0;
+	}
+
+	getAutocompleteMaxVisible(): number {
+		return 5;
+	}
+
+	getCodeBlockIndent(): string {
+		return "  ";
+	}
+
+	getBranchSummarySettings(): any {
+		return { reserveTokens: 16384 };
 	}
 }

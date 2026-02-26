@@ -1,5 +1,5 @@
 import { Agent, type AgentEvent } from "@mariozechner/pi-agent-core";
-import { getModel, type ImageContent } from "@mariozechner/pi-ai";
+import { getModel, type ImageContent, type KnownProvider } from "@mariozechner/pi-ai";
 import {
 	AgentSession,
 	AuthStorage,
@@ -23,8 +23,7 @@ import type { ChannelInfo, SlackContext, UserInfo } from "./slack.js";
 import type { ChannelStore } from "./store.js";
 import { createMomTools, setUploadFunction } from "./tools/index.js";
 
-// Hardcoded model for now - TODO: make configurable (issue #63)
-const model = getModel("anthropic", "claude-sonnet-4-5");
+// Model determined per-runner in createRunner()
 
 export interface PendingMessage {
 	userName: string;
@@ -42,12 +41,12 @@ export interface AgentRunner {
 	abort(): void;
 }
 
-async function getAnthropicApiKey(authStorage: AuthStorage): Promise<string> {
-	const key = await authStorage.getApiKey("anthropic");
+async function getApiKeyForProvider(authStorage: AuthStorage, provider: string): Promise<string> {
+	const key = await authStorage.getApiKey(provider);
 	if (!key) {
 		throw new Error(
-			"No API key found for anthropic.\n\n" +
-				"Set an API key environment variable, or use /login with Anthropic and link to auth.json from " +
+			`No API key found for ${provider}.\n\n` +
+				`Set an API key environment variable (e.g. ${provider.toUpperCase()}_API_KEY), or use /login with ${provider} and link to auth.json from ` +
 				join(homedir(), ".pi", "mom", "auth.json"),
 		);
 	}
@@ -431,6 +430,11 @@ function createRunner(sandboxConfig: SandboxConfig, channelId: string, channelDi
 	const authStorage = AuthStorage.create(join(homedir(), ".pi", "mom", "auth.json"));
 	const modelRegistry = new ModelRegistry(authStorage);
 
+	// Determine model and provider
+	const provider = (settingsManager.getDefaultProvider() || "anthropic") as KnownProvider;
+	const modelId = settingsManager.getDefaultModel() || "claude-sonnet-4-5";
+	const model = (getModel as any)(provider, modelId);
+
 	// Create agent
 	const agent = new Agent({
 		initialState: {
@@ -440,7 +444,7 @@ function createRunner(sandboxConfig: SandboxConfig, channelId: string, channelDi
 			tools,
 		},
 		convertToLlm,
-		getApiKey: async () => getAnthropicApiKey(authStorage),
+		getApiKey: async (p) => getApiKeyForProvider(authStorage, p),
 	});
 
 	// Load existing messages
@@ -623,17 +627,23 @@ function createRunner(sandboxConfig: SandboxConfig, channelId: string, channelDi
 
 	// Slack message limit
 	const SLACK_MAX_LENGTH = 40000;
+	// Reserve 30 chars for continuation suffix: "\n_(continued N...)_"
+	const CHUNK_SIZE = SLACK_MAX_LENGTH - 30;
 	const splitForSlack = (text: string): string[] => {
 		if (text.length <= SLACK_MAX_LENGTH) return [text];
 		const parts: string[] = [];
 		let remaining = text;
 		let partNum = 1;
 		while (remaining.length > 0) {
-			const chunk = remaining.substring(0, SLACK_MAX_LENGTH - 50);
-			remaining = remaining.substring(SLACK_MAX_LENGTH - 50);
-			const suffix = remaining.length > 0 ? `\n_(continued ${partNum}...)_` : "";
-			parts.push(chunk + suffix);
-			partNum++;
+			const chunk = remaining.substring(0, CHUNK_SIZE);
+			remaining = remaining.substring(CHUNK_SIZE);
+			// Only add continuation suffix if there's more text
+			if (remaining.length > 0) {
+				parts.push(`${chunk}\n_(continued ${partNum}...)_`);
+				partNum++;
+			} else {
+				parts.push(chunk);
+			}
 		}
 		return parts;
 	};

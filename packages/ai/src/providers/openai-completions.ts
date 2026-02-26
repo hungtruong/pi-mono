@@ -106,6 +106,9 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions", OpenA
 			const client = createClient(model, context, apiKey, options?.headers);
 			const params = buildParams(model, context, options);
 			options?.onPayload?.(params);
+			if (model.provider === "cloudflare-gateway") {
+				console.log(`[openai-completions] cloudflare-gateway payload: ${JSON.stringify(params, null, 2)}`);
+			}
 			const openaiStream = await client.chat.completions.create(params, { signal: options?.signal });
 			stream.push({ type: "start", partial: output });
 
@@ -311,6 +314,7 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions", OpenA
 			for (const block of output.content) delete (block as any).index;
 			output.stopReason = options?.signal?.aborted ? "aborted" : "error";
 			output.errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+			console.error(`[openai-completions] ${model.provider} error: ${output.errorMessage}`);
 			// Some providers via OpenRouter give additional information in this field.
 			const rawMetadata = (error as any)?.error?.metadata?.raw;
 			if (rawMetadata) output.errorMessage += `\n${rawMetadata}`;
@@ -566,10 +570,17 @@ export function convertMessages(
 					? content.filter((c) => c.type !== "image_url")
 					: content;
 				if (filteredContent.length === 0) continue;
-				params.push({
-					role: "user",
-					content: filteredContent,
-				});
+				if (model.provider === "cloudflare-gateway" && filteredContent.every((c) => c.type === "text")) {
+					params.push({
+						role: "user",
+						content: filteredContent.map((c) => (c as ChatCompletionContentPartText).text).join("\n"),
+					});
+				} else {
+					params.push({
+						role: "user",
+						content: filteredContent,
+					});
+				}
 			}
 		} else if (msg.role === "assistant") {
 			// Some providers (e.g. Mistral) don't accept null content, use empty string instead
@@ -584,7 +595,7 @@ export function convertMessages(
 			if (nonEmptyTextBlocks.length > 0) {
 				// GitHub Copilot requires assistant content as a string, not an array.
 				// Sending as array causes Claude models to re-answer all previous prompts.
-				if (model.provider === "github-copilot") {
+				if (model.provider === "github-copilot" || model.provider === "cloudflare-gateway") {
 					assistantMsg.content = nonEmptyTextBlocks.map((b) => sanitizeSurrogates(b.text)).join("");
 				} else {
 					assistantMsg.content = nonEmptyTextBlocks.map((b) => {
@@ -784,9 +795,14 @@ function detectCompat(model: Model<"openai-completions">): Required<OpenAIComple
 		baseUrl.includes("deepseek.com") ||
 		isZai ||
 		provider === "opencode" ||
-		baseUrl.includes("opencode.ai");
+		baseUrl.includes("opencode.ai") ||
+		provider === "cloudflare-gateway";
 
-	const useMaxTokens = provider === "mistral" || baseUrl.includes("mistral.ai") || baseUrl.includes("chutes.ai");
+	const useMaxTokens =
+		provider === "mistral" ||
+		baseUrl.includes("mistral.ai") ||
+		baseUrl.includes("chutes.ai") ||
+		provider === "cloudflare-gateway";
 
 	const isGrok = provider === "xai" || baseUrl.includes("api.x.ai");
 
@@ -795,8 +811,8 @@ function detectCompat(model: Model<"openai-completions">): Required<OpenAIComple
 	return {
 		supportsStore: !isNonStandard,
 		supportsDeveloperRole: !isNonStandard,
-		supportsReasoningEffort: !isGrok && !isZai,
-		supportsUsageInStreaming: true,
+		supportsReasoningEffort: !isGrok && !isZai && provider !== "cloudflare-gateway",
+		supportsUsageInStreaming: provider !== "cloudflare-gateway",
 		maxTokensField: useMaxTokens ? "max_tokens" : "max_completion_tokens",
 		requiresToolResultName: isMistral,
 		requiresAssistantAfterToolResult: false, // Mistral no longer requires this as of Dec 2024
@@ -805,7 +821,7 @@ function detectCompat(model: Model<"openai-completions">): Required<OpenAIComple
 		thinkingFormat: isZai ? "zai" : "openai",
 		openRouterRouting: {},
 		vercelGatewayRouting: {},
-		supportsStrictMode: true,
+		supportsStrictMode: provider !== "cloudflare-gateway",
 	};
 }
 

@@ -34,6 +34,7 @@ export const defaultModelPerProvider: Record<KnownProvider, string> = {
 	huggingface: "moonshotai/Kimi-K2.5",
 	opencode: "claude-opus-4-6",
 	"kimi-coding": "kimi-k2-thinking",
+	"cloudflare-gateway": "google-ai-studio/gemini-3-flash-preview",
 };
 
 export interface ScopedModel {

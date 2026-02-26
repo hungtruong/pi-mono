@@ -106,9 +106,6 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions", OpenA
 			const client = createClient(model, context, apiKey, options?.headers);
 			const params = buildParams(model, context, options);
 			options?.onPayload?.(params);
-			if (model.provider === "cloudflare-gateway") {
-				console.log(`[openai-completions] cloudflare-gateway payload: ${JSON.stringify(params, null, 2)}`);
-			}
 			const openaiStream = await client.chat.completions.create(params, { signal: options?.signal });
 			stream.push({ type: "start", partial: output });
 
@@ -310,7 +307,7 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions", OpenA
 
 			stream.push({ type: "done", reason: output.stopReason, message: output });
 			stream.end();
-		} catch (error) {
+		} catch (error: any) {
 			for (const block of output.content) delete (block as any).index;
 			output.stopReason = options?.signal?.aborted ? "aborted" : "error";
 			output.errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
@@ -372,11 +369,6 @@ function createClient(
 		Object.assign(headers, copilotHeaders);
 	}
 
-	if (model.provider === "cloudflare-gateway") {
-		// Cloudflare Gateway uses 'cf-aig-authorization' instead of standard 'Authorization'
-		Object.assign(headers, { "cf-aig-authorization": `Bearer ${apiKey}` });
-	}
-
 	// Merge options headers last so they can override defaults
 	if (optionsHeaders) {
 		Object.assign(headers, optionsHeaders);
@@ -386,7 +378,7 @@ function createClient(
 		model.provider === "cloudflare-gateway" ? process.env.CF_AIG_URL || model.baseUrl : model.baseUrl;
 
 	return new OpenAI({
-		apiKey: model.provider === "cloudflare-gateway" ? "not-used" : apiKey,
+		apiKey,
 		baseURL,
 		dangerouslyAllowBrowser: true,
 		defaultHeaders: headers,
@@ -754,23 +746,14 @@ function convertTools(
 	}));
 }
 
-function mapStopReason(reason: ChatCompletionChunk.Choice["finish_reason"]): StopReason {
-	if (reason === null) return "stop";
-	switch (reason) {
-		case "stop":
-			return "stop";
-		case "length":
-			return "length";
-		case "function_call":
-		case "tool_calls":
-			return "toolUse";
-		case "content_filter":
-			return "error";
-		default: {
-			const _exhaustive: never = reason;
-			throw new Error(`Unhandled stop reason: ${_exhaustive}`);
-		}
-	}
+function mapStopReason(reason: string | null): StopReason {
+	if (!reason) return "stop";
+	const lower = reason.toLowerCase();
+	if (lower.includes("stop")) return "stop";
+	if (lower.includes("length")) return "length";
+	if (lower.includes("tool_calls") || lower.includes("function_call")) return "toolUse";
+	if (lower.includes("content_filter")) return "error";
+	return "stop";
 }
 
 /**

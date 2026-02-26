@@ -180,8 +180,16 @@ class DockerExecutor implements Executor {
 	constructor(private container: string) {}
 
 	async exec(command: string, options?: ExecOptions): Promise<ExecResult> {
+		// Pass MOM_ prefix and _API_KEY suffix environment variables to docker exec
+		const envArgs: string[] = [];
+		for (const [key, value] of Object.entries(process.env)) {
+			if (value && (key.startsWith("MOM_") || key.endsWith("_API_KEY"))) {
+				envArgs.push("-e", `${key}=${value}`);
+			}
+		}
+
 		// Wrap command for docker exec
-		const dockerCmd = `docker exec ${this.container} sh -c ${shellEscape(command)}`;
+		const dockerCmd = `docker exec ${envArgs.join(" ")} ${this.container} sh -c ${shellEscape(command)}`;
 		const hostExecutor = new HostExecutor();
 		return hostExecutor.exec(dockerCmd, options);
 	}

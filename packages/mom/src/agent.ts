@@ -626,7 +626,7 @@ function createRunner(sandboxConfig: SandboxConfig, channelId: string, channelDi
 	});
 
 	// Slack message limit
-	const SLACK_MAX_LENGTH = 40000;
+	const SLACK_MAX_LENGTH = 2800;
 	// Reserve 30 chars for continuation suffix: "\n_(continued N...)_"
 	const CHUNK_SIZE = SLACK_MAX_LENGTH - 30;
 	const splitForSlack = (text: string): string[] => {

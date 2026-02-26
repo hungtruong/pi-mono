@@ -91,7 +91,7 @@ export function logToolSuccess(ctx: LogContext, toolName: string, durationMs: nu
 	const duration = (durationMs / 1000).toFixed(1);
 	console.log(chalk.yellow(`${timestamp()} ${formatContext(ctx)} ✓ ${toolName} (${duration}s)`));
 
-	const truncated = truncate(result, 1000);
+	const truncated = truncate(result, 4000);
 	if (truncated) {
 		const indented = truncated
 			.split("\n")
@@ -105,7 +105,7 @@ export function logToolError(ctx: LogContext, toolName: string, durationMs: numb
 	const duration = (durationMs / 1000).toFixed(1);
 	console.log(chalk.yellow(`${timestamp()} ${formatContext(ctx)} ✗ ${toolName} (${duration}s)`));
 
-	const truncated = truncate(error, 1000);
+	const truncated = truncate(error, 4000);
 	const indented = truncated
 		.split("\n")
 		.map((line) => `           ${line}`)
@@ -120,7 +120,7 @@ export function logResponseStart(ctx: LogContext): void {
 
 export function logThinking(ctx: LogContext, thinking: string): void {
 	console.log(chalk.yellow(`${timestamp()} ${formatContext(ctx)} 💭 Thinking`));
-	const truncated = truncate(thinking, 1000);
+	const truncated = truncate(thinking, 4000);
 	const indented = truncated
 		.split("\n")
 		.map((line) => `           ${line}`)
@@ -130,7 +130,7 @@ export function logThinking(ctx: LogContext, thinking: string): void {
 
 export function logResponse(ctx: LogContext, text: string): void {
 	console.log(chalk.yellow(`${timestamp()} ${formatContext(ctx)} 💬 Response`));
-	const truncated = truncate(text, 1000);
+	const truncated = truncate(text, 4000);
 	const indented = truncated
 		.split("\n")
 		.map((line) => `           ${line}`)

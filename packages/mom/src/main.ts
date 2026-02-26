@@ -142,7 +142,11 @@ function createSlackContext(event: SlackEvent, slack: SlackBot, state: ChannelSt
 		respond: async (text: string, shouldLog = true) => {
 			updatePromise = updatePromise.then(async () => {
 				accumulatedText = accumulatedText ? `${accumulatedText}\n${text}` : text;
-				const displayText = isWorking ? accumulatedText + workingIndicator : accumulatedText;
+				let displayText = isWorking ? accumulatedText + workingIndicator : accumulatedText;
+
+				if (displayText.length > 3500) {
+					displayText = `${displayText.substring(0, 3450)}\n\n_(truncated, see thread for full response)_`;
+				}
 
 				if (messageTs) {
 					await slack.updateMessage(event.channel, messageTs, displayText);
@@ -160,7 +164,12 @@ function createSlackContext(event: SlackEvent, slack: SlackBot, state: ChannelSt
 		replaceMessage: async (text: string) => {
 			updatePromise = updatePromise.then(async () => {
 				accumulatedText = text;
-				const displayText = isWorking ? accumulatedText + workingIndicator : accumulatedText;
+				let displayText = isWorking ? accumulatedText + workingIndicator : accumulatedText;
+
+				if (displayText.length > 3500) {
+					displayText = `${displayText.substring(0, 3450)}\n\n_(truncated, see thread for full response)_`;
+				}
+
 				if (messageTs) {
 					await slack.updateMessage(event.channel, messageTs, displayText);
 				} else {

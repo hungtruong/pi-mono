@@ -172,6 +172,9 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions", OpenA
 
 				if (choice.finish_reason) {
 					output.stopReason = mapStopReason(choice.finish_reason);
+					if (output.stopReason === "error") {
+						output.errorMessage = `Finish reason: ${choice.finish_reason}`;
+					}
 				}
 
 				if (choice.delta) {
@@ -302,7 +305,7 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions", OpenA
 			}
 
 			if (output.stopReason === "aborted" || output.stopReason === "error") {
-				throw new Error("An unknown error occurred");
+				throw new Error(output.errorMessage || "An unknown error occurred");
 			}
 
 			stream.push({ type: "done", reason: output.stopReason, message: output });
@@ -311,6 +314,9 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions", OpenA
 			for (const block of output.content) delete (block as any).index;
 			output.stopReason = options?.signal?.aborted ? "aborted" : "error";
 			output.errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+			if (!(error instanceof Error)) {
+				console.error(`[openai-completions] Raw error: ${JSON.stringify(error)}`);
+			}
 			console.error(`[openai-completions] ${model.provider} error: ${output.errorMessage}`);
 			// Some providers via OpenRouter give additional information in this field.
 			const rawMetadata = (error as any)?.error?.metadata?.raw;
